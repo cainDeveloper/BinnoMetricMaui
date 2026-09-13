@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 
 namespace BinnoMetricMaui.Service;
+
 public class ProductionRecordService
 {
     private readonly HttpClient _httpClient;
@@ -15,14 +16,28 @@ public class ProductionRecordService
         _productService = productService;
     }
 
-    public async Task<List<ProductionRecord>> GetProductionRecordsAsync(int page, int pageSize)
+    public async Task<List<ProductionRecord>> GetProductionRecordsAsync(ProductionRecordFilter filter)
     {
-        string url = $"https://localhost:7259/api/ProductionRecords/GetProductionRecords?page={page}&pageSize={pageSize}";
+        string url = "https://localhost:7259/api/ProductionRecords/GetProductionRecords";
 
         try
         {
             var products = await _productService.GetProductsAsync();
             var employees = await _employeeService.GetEmployeesAsync();
+
+            var queryParams = new List<string>();
+            if (filter.Page.HasValue) queryParams.Add($"Page={filter.Page.Value}");
+            if (filter.PageSize.HasValue) queryParams.Add($"PageSize={filter.PageSize.Value}");
+            if (filter.EmployeeId.HasValue) queryParams.Add($"EmployeeId={filter.EmployeeId.Value}");
+            if (filter.ProductId.HasValue) queryParams.Add($"ProductId={filter.ProductId.Value}");
+            if (filter.EquipmentLineId.HasValue) queryParams.Add($"EquipmentLineId={filter.EquipmentLineId.Value}");
+            if (!string.IsNullOrEmpty(filter.SeriesNumber)) queryParams.Add($"SeriesNumber={Uri.EscapeDataString(filter.SeriesNumber)}");
+            if (filter.ActualQuantity.HasValue) queryParams.Add($"ActualQuantity={filter.ActualQuantity.Value}");
+            if (!string.IsNullOrEmpty(filter.Comments)) queryParams.Add($"Comments={Uri.EscapeDataString(filter.Comments)}");
+
+            if (queryParams.Count > 0)
+                url += "?" + string.Join("&", queryParams);
+
             var response = await _httpClient.GetStringAsync(url);
             var productionRecords = JsonSerializer.Deserialize<List<ProductionRecord>>(response);
             var productionRecordsWithName = productionRecords.Select(record =>
@@ -55,11 +70,11 @@ public class ProductionRecordService
             var operatorNK = (await _employeeService.GetEmployeeAsync(record.OperatorNKLId));
             var packer = (await _employeeService.GetEmployeeAsync(record.PackerId));
 
-            record.ProductName = product.Name;
-            record.SeniorOperatorName = seniorOperator.FullName;
-            record.OperatorDName = operatorD.FullName;
-            record.OperatorNKName = operatorNK.FullName;
-            record.PackerName = packer.FullName;
+            record.ProductName = product != null ? product.Name : "null";
+            record.SeniorOperatorName = seniorOperator != null? seniorOperator.FullName : "null";
+            record.OperatorDName = operatorD != null ? operatorD.FullName : "null";
+            record.OperatorNKName = operatorNK != null ? operatorNK.FullName : "null";
+            record.PackerName = packer != null ? packer.FullName : "null";
             return record;
         }
         catch
@@ -102,13 +117,9 @@ public class ProductionRecordService
 
             if (response.IsSuccessStatusCode)
             {
-                // Читаем содержимое ответа
                 var json = await response.Content.ReadAsStringAsync();
-
-                // Парсим JSON в bool
                 var result = JsonSerializer.Deserialize<bool>(json);
-
-                return result; // true или false
+                return result;
             }
 
             return false;
@@ -118,5 +129,4 @@ public class ProductionRecordService
             return false;
         }
     }
-
 }

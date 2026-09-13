@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 namespace BinnoMetricMaui.ViewModel;
+
 public partial class ProductionRecordViewModel : ObservableObject
 {
     private readonly ProductionRecordService _productionRecordService;
@@ -28,6 +29,9 @@ public partial class ProductionRecordViewModel : ObservableObject
     private int pageSize = 30;
 
     [ObservableProperty]
+    private ProductionRecordFilter filter = new ProductionRecordFilter();
+
+    [ObservableProperty]
     private ObservableCollection<ProductionRecord> productionRecords = new ObservableCollection<ProductionRecord>();
     [ObservableProperty]
     private ObservableCollection<PageModel> pages = new ObservableCollection<PageModel>();
@@ -35,8 +39,8 @@ public partial class ProductionRecordViewModel : ObservableObject
     [RelayCommand]
     public async Task UpdatepPoductionRecordsList()
     {
-        await GetTotalPageCount(); 
-        await LoadProductinRecordsAsync(); 
+        await GetTotalPageCount();
+        await LoadProductinRecordsAsync();
     }
 
     [RelayCommand]
@@ -45,7 +49,7 @@ public partial class ProductionRecordViewModel : ObservableObject
         var result = await _productionRecordService.DeleteProductionRecordAsync(id);
         if (result) LogMessage += $"\nПроизводственная запись с ID: {id} удалена";
         else LogMessage += "\nНе удалось удалить производственную запись.";
-        await GetTotalPageCount(); 
+        await GetTotalPageCount();
         await LoadProductinRecordsAsync();
     }
 
@@ -53,7 +57,10 @@ public partial class ProductionRecordViewModel : ObservableObject
     {
         try
         {
-            var productionRecordsList = await _productionRecordService.GetProductionRecordsAsync(Page, PageSize);
+            Filter.Page = Page;
+            Filter.PageSize = PageSize;
+
+            var productionRecordsList = await _productionRecordService.GetProductionRecordsAsync(Filter);
 
             ProductionRecords.Clear();
             foreach (var record in productionRecordsList)
@@ -87,7 +94,7 @@ public partial class ProductionRecordViewModel : ObservableObject
                 Pages.Add(new PageModel { Number = i });
             }
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             LogMessage += $"\nОшибка при получении количества страниц: {ex.Message}";
         }
