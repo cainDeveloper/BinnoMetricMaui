@@ -76,13 +76,20 @@ public partial class ProductionRecordViewModel : ObservableObject
     }
     private async Task GetTotalPageCount()
     {
-        var result = await _productionRecordService.GetPageCountAsync(PageSize);
-        TotalPageCount = result;
-
-        Pages.Clear();
-        for (int i = 1; i <= TotalPageCount; i++)
+        try
         {
-            Pages.Add(new PageModel { Number = i });
+            var result = await _productionRecordService.GetPageCountAsync(PageSize);
+            TotalPageCount = result;
+
+            Pages.Clear();
+            for (int i = 1; i <= TotalPageCount; i++)
+            {
+                Pages.Add(new PageModel { Number = i });
+            }
+        }
+        catch(Exception ex)
+        {
+            LogMessage += $"\nОшибка при получении количества страниц: {ex.Message}";
         }
     }
     [RelayCommand]
